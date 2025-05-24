@@ -9,7 +9,7 @@ reviews and software testing (including unit and integration testing) to automat
 such as static and dynamic analysis. Formal methods, including model checking, offer mathematical 
 approaches to software verification. Model checking is a formal verification technique that 
 systematically explores all possible states and transitions (the state space) of a formal model 
-(representation) of the system to determine if it satisfies a formally specified property. 
+(representation) of the system to determine if it satisfies a formally specified property~\cite{HandbookMC} .
 This process typically involves:
 
 \begin{algorithm}
@@ -61,7 +61,7 @@ There are two categories of witnesses:
 
   Each segment contains \textit{waypoints}, which are specific program locations the execution passes through. A waypoint includes:
   \begin{itemize}
-    \item \texttt{type} – such as \texttt{assumption}, \texttt{target}, \texttt{function\_enter}, or \texttt{function\_return}
+    \item \texttt{type} – such as \texttt{assumption}, \texttt{branching}, \texttt{target}, \texttt{function\_enter}, or \texttt{function\_return}
     \item \texttt{constraint} – describes the program state or path condition
     \item \texttt{location} – maps to a line in the source code
     \item \texttt{action} – specifies whether to avoid or pass through this waypoint

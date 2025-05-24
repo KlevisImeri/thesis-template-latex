@@ -1,3 +1,43 @@
+For the latex text above:
+- fix the structure
+- correct any spelling error
+- paraphraze it just a bit to make it sound nicer but please keep everything that is said as it is
+- write it in latex
+- please write only the latex as output. Dont give me any other sugesstion.
+
+Chapter create xcfa from Witness program
+How it works more exacly Intution why it works
+Smiplif the example make them small
+Progfrm + witness XCFA in one page
+
+Limitations 
+
+Future works under conclusion
+
+\begin{figure}[htbp]
+  \centering
+  \begin{minipage}[t]{0.35\textwidth}
+    \begin{lstlisting}[style=c]
+    \end{lstlisting}
+    \end{minipage}
+  \caption{}
+  \label{fig:combined}
+\end{figure}
+
+
+
+
+
+Before conclusuion: Related works chapeter Witness Validation on other Tool + heta’s Validation Capabilities Compared to Other Verification Tools = related work
+
+
+
+Error: branching witness
+
+https://www.doi2bib.org/bib/
+https://scholar.google.com/
+https://dblp.org/
+
 ```
 \chapter{Introduction/Abstract}
 
@@ -20,3 +60,7 @@
 
 \chapter{Conclusion}
 ```
+
+Suggested packages
+- algorithm2e
+- booktables
