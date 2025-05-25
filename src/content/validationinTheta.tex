@@ -111,24 +111,24 @@ We consider two types of assumption waypoints:
 
 \begin{figure}[htbp]
   \centering
-  \begin{minipage}[t]{0.35\textwidth}
+  \begin{minipage}[t]{0.25\textwidth}
     \begin{lstlisting}[style=c, columns=flexibl]
-    - segment:
-      - waypoint:
-        type: "assumption"
-        action: "avoid"
-        constraint: <C_1>
-        location: <wp_1>
-      - waypoint:
-        type: "assumption"
-        action: "avoid"
-        constraint: <C_2>
-        location: <wp_2>
-      - waypoint:
-        type: "assumption"
-        action: "follow"
-        constraint: <C_3>
-        location: <wp_3>
+- segment:
+  - waypoint:
+    type: "assumption"
+    action: "avoid"
+    constraint: <C_1>
+    location: <wp_1>
+  - waypoint:
+    type: "assumption"
+    action: "avoid"
+    constraint: <C_2>
+    location: <wp_2>
+  - waypoint:
+    type: "assumption"
+    action: "follow"
+    constraint: <C_3>
+    location: <wp_3>
     \end{lstlisting}
     \end{minipage}
     \begin{tikzpicture}[
@@ -145,9 +145,13 @@ We consider two types of assumption waypoints:
     \node[dashednode, below=1cm of SN] (SN2) {$s_{n+1}$};
 
     \path (SN1) edge[dashed] (SN)
-        (SN) edge[out=150, in=210, min distance=1.2cm] node[left] {$\neg C_1 \land wp_1$} (SN)
-        (SN) edge[out=150, in=210, min distance=4.5cm] node[left] {$\neg C_2 \land wp_2$} (SN)
-        (SN) edge node[midway, right] {$C_3 \land wp_3$} (SN2); 
+        (SN) edge[out=150, in=210, min distance=1.2cm] node[left, font=\scriptsize] {$\neg C_1 \land \text{wp} = wp_1$} (SN)
+        (SN) edge[out=150, in=210, min distance=5cm] node[left, font=\scriptsize] {$\neg C_2 \land \text{wp} = wp_2$} (SN)
+        (SN) edge[out=30, in=-30, min distance=1.2cm] node[right, font=\scriptsize, align=left] {%
+          $\text{wp} < wp_1 \lor$ \\
+          $\text{wp} > wp_3$%
+        } (SN)
+        (SN) edge node[midway, right, font=\scriptsize] {$C_3 \land \text{wp} = wp_3$} (SN2);
 
     \end{tikzpicture}
   \caption{XCFA mapping of the assumtion type waypoints and their constrains. The \texttt{C}
@@ -155,27 +159,37 @@ We consider two types of assumption waypoints:
   \label{fig:combined}
 \end{figure}
 
+One of the edges depicted in the figure, which has not been previously explained, is the loop at 
+state $S_n$. This loop is labeled with the condition $\texttt{wp} < wp_1 \lor \texttt{wp} > wp_3$. Such 
+an edge, which we will call the \textbf{segment guard} edge, is necessary because, within the current 
+segment, we are only concerned with processing waypoints that specifically correspond to this segment. 
+Since the waypoints are ordered according to their \texttt{wp} value (these are values mapped from their 
+source code locations, rather than the locations themselves, which means that even if the source locations 
+are not ordered, the \texttt{wp} values are), a range check, as exemplified by the aforementioned label, 
+is sufficient.
+
 A while loop provides a good example for understanding the difference between 
 \emph{avoid} and \emph{follow} assumptions.
 To clarify the usual confusion surrounding these concepts, and to explain why they 
 are necessary and defined in this manner, consider the following illustration.
-Suppose the objective is to ensure that a variable v always remains less than 256.
-One could achieve this by employing a \emph{follow} assumption, such as v < 256, 
+Suppose, looking at the simple \texttt{while} loop in Figure~3.3, the objective is 
+to ensure tha the variable $v$ always remains greater than 200; effectively, this means 
+we aim for the $s$ variable to overflow.
+One could achieve this by employing a \emph{follow} assumption, such as $v > 200$, 
 applied across n distinct program segments.
 Alternatively, a more concise approach is to define a single \emph{avoid} 
-assumption for the relevant segment, for instance, to avoid paths where v > 255.
+assumption for the relevant segment, for instance, to avoid paths where $v \le 200$.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
-  \begin{minipage}[t]{0.45\textwidth}
+  \begin{minipage}[t]{0.40\textwidth}
     \begin{lstlisting}[style=c]
-    while (i < n) {
-      v = nondet(); 
-      // AVOID assume v > 255
-      s += v;
-      ++i;
-    }
-    \end{lstlisting}
+uchar v=0, s=0, i=0, n=2;
+while (i < n) {
+  v = nondet(); 
+  // AVOID (assume v <= 200)
+  s += v; ++i;
+}\end{lstlisting}
   \end{minipage}
   \begin{tikzpicture}[
       baseline=(current bounding box.north),
@@ -199,9 +213,9 @@ assumption for the relevant segment, for instance, to avoid paths where v > 255.
 
   % Transitions
   \path 
-      (loop_start) edge node[right] {$i < n$} (main_path)
-      (loop_start) edge node[above] {$i \geq n$} (alternative)
-      (main_path) edge[bend left=50] node[left] {$\begin{array}{l}
+      (loop_start) edge node[right, font=\scriptsize] {$i < n$} (main_path)
+      (loop_start) edge node[above, font=\scriptsize] {$i \geq n$} (alternative)
+      (main_path) edge[bend left=50] node[left, font=\scriptsize] {$\begin{array}{l}
                                    v := nondet()\\ 
                                    s := s + v\\
                                    i := i + 1
@@ -299,7 +313,11 @@ be omitted, with only the location being kept. This, however, is not the case in
     \node[dashednode, below=1cm of SN] (SN2) {$s_{n+1}$};
 
     \path (SN1) edge[dashed] (SN)
-        (SN) edge node[midway, right] {$wp_3$} (SN2); 
+        (SN) edge[out=30, in=-30, min distance=1.2cm] node[right, font=\scriptsize, align=left] {%
+          $\text{wp} < wp_1 \lor$ \\
+          $\text{wp} > wp_3$%
+        } (SN)
+        (SN) edge node[midway, right] {$\text{wp} = wp_3$} (SN2); 
 
     \end{tikzpicture}
   \caption{XCFA mapping of a branching-type waypoint, where the \texttt{wp} variable is a tuple (row:col, constraint)
@@ -316,7 +334,7 @@ There is only one type of target waypoint:
 \end{itemize}
 This type of waypoint does not have an associated constraint.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
   \begin{minipage}[t]{0.35\textwidth}
     \begin{lstlisting}[style=c, columns=flexibl]
@@ -334,15 +352,20 @@ This type of waypoint does not have an associated constraint.
         >={Stealth[scale=1.2]},
         every edge/.style={draw, ->},
         solidnode/.style={draw, circle, minimum size=1.2cm}, % Solid nodes
-        dashednode/.style={draw, dashed, circle, minimum size=1.2cm} % Dashed nodes
+        dashednode/.style={draw, dashed, circle, minimum size=1.2cm}, % Dashed nodes
+        errornode/.style={solidnode, fill=red!20}
     ]
 
     \node[dashednode] (SN1) {$s_{n-1}$};
     \node[solidnode, below=1cm of SN1] (SN) {$s_n$};
-    \node[dashednode, below=1cm of SN] (SN2) {error};
+    \node[errornode, below=1cm of SN] (SN2) {error};
 
     \path (SN1) edge[dashed] (SN)
-        (SN) edge node[midway, right] {$wp_0$} (SN2); 
+        (SN) edge[out=30, in=-30, min distance=1.2cm] node[right, font=\scriptsize, align=left] {%
+          $\text{wp} < wp_0 \lor$ \\
+          $\text{wp} > wp_0$%
+        } (SN)
+        (SN) edge node[midway, right] {$\text{wp} = wp_0$} (SN2); 
 
     \end{tikzpicture}
   \caption{XCFA mapping of target type waypoint. The \texttt{wp} variables are a tuple of row:col.}
@@ -350,6 +373,7 @@ This type of waypoint does not have an associated constraint.
 \end{figure}
 
 
+A segment is designated as final if its follow waypoint is a target.
 The following is an example segment that includes all the aforementioned types of waypoints.
 
 \begin{figure}[H]
@@ -386,88 +410,422 @@ The following is an example segment that includes all the aforementioned types o
     \node[dashednode, below=1cm of SN] (SN2) {$s_{n+1}$};
 
     \path (SN1) edge[dashed] (SN)
-        (SN) edge[out=150, in=210, min distance=1.2cm] node[left] {$\neg C_2 \land wp_2$} (SN)
-        (SN) edge node[midway, right] {$wp_3$} (SN2); 
+        (SN) edge[out=150, in=210, min distance=1.2cm] node[left, font=\scriptsize] {$\neg C_2 \land \text{wp} = wp_2$} (SN)
+        (SN) edge[out=30, in=-30, min distance=1.2cm] node[right, font=\scriptsize, align=left] {%
+          $\text{wp} < wp_1 \lor$ \\
+          $\text{wp} > wp_3$%
+        } (SN)
+        (SN) edge node[midway, right] {$\text{wp} = wp{}_3$} (SN2); 
 
     \end{tikzpicture}
   \caption{XCFA mapping of a final segment containing branching, assumption, and target waypoints, along with their respective constraints.}
   \label{fig:combined}
 \end{figure}
 
-A segment is designated as final if its follow waypoint is a target.
+
+\section{Combining and Executing the XCFA's}
+As seen in Figure~3.1, after the program and witness XCFAs are created and their 
+corresponding waypoints (locations) are matched, we proceed to run the Multianalysis. 
+Before explaining how the XCFAs are executed together, we should first examine what 
+a generic witness may look like. Figure~3.7 (left) shows such a witness.
+
+A witness XCFA can be composed of a start location, a sequence of one or more segments, and 
+an error location. Segments are represented by nodes labeled $S_i$.
+To represent the possibility of many segments, nodes such as $S_{n-1}$ and $S_{n+1}$ are visualized as dashed (meaning optional).
+From the discussion above, it becomes clear that segment $S_n$ is a depiction of a general segment.
+Dashed edges signify that they may or may not be present. For instance, several dashed edges on 
+the right side indicate that there can be multiple \texttt{avoid} conditions within a segment. 
+In contrast, the bold edges, which represent the \texttt{follow} waypoint and the segment guard, 
+are necessary components.
+Here, the range $1 < i \le n-1$ for an index $i$ delineates the waypoints within the current segment 
+$S_n$, excluding the final one; these waypoints are labeled $wp_{s_{ni}}$.
+The \texttt{C} variables in this context represent several expressions combined. They can aslo be empty.
+
+
+On the right, a representation of a generic program XCFA is shown.
+Here, \texttt{k} within the program XCFA represents the branching number. 
+For an \texttt{if} statement, this number is 2, whereas for a \texttt{switch} statement, 
+it can be as large as the number of cases in the switch.
+It is important to note that not all edges in this XCFA necessarily have associated waypoints.
+The bold edge depicted between $\ell_n$ and $\ell_{n+1}$ represents 
+an arbitrary edge within the program XCFA that does have an associated waypoint.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{minipage}[t]{0.35\textwidth}
+    \begin{tikzpicture}[
+        baseline=(current bounding box.north),
+        node distance=2cm,
+        >={Stealth[scale=1.2]},
+        every edge/.style={draw, ->},
+        solidnode/.style={draw, circle, minimum size=1.2cm},
+        dashednode/.style={draw, dashed, circle, minimum size=1.2cm},
+        startnode/.style={solidnode, fill=black!20},
+        errornode/.style={solidnode, fill=red!20}
+    ]
+
+    % Nodes
+    \node[startnode] (start) {start};
+    \node[dashednode, below=1cm of start] (SN1) {$s_{n-1}$};
+    \node[solidnode, below=1cm of SN1] (SN) {$s_n$};
+    \node[dashednode, below=1cm of SN] (SN2) {$s_{n+1}$};
+    \node[errornode, below=1cm of SN2] (error) {error};
+
+    % Edges
+    \draw[dashed, dotted] (start) -- (SN1); % Dotted-dashed entry
+    \path (SN1) edge[dashed] (SN)
+        (SN) edge[dashed, out=150, in=210, min distance=1.2cm] node[left, font=\scriptsize, align=left] {%
+            [$\neg C_i \land$ \\
+            $\text{wp} = wp_{s_ni}$] \\
+            $\text{run} := \text{false}$%
+        } (SN)
+        (SN) edge[dashed, out=150, in=210, min distance=3cm] (SN)
+        (SN) edge[out=30, in=-30, min distance=1.2cm] node[right, font=\scriptsize, align=left] {%
+           [$\text{wp} < wp_{s_n1} \lor$ \\
+            $\text{wp} > wp_{s_nn}$] \\
+            $\text{run} := \text{false}$%
+        } (SN)
+        (SN) edge node[midway, right, font=\scriptsize, align=left] {%
+           [$\neg C_n \land$ \\
+            $\text{wp} = wp_{s_nn}$] \\
+            $\text{run} := \text{false}$%
+        } (SN2);
+    \draw[dashed, dotted] (SN2) -- (error);
+
+    % Additional dashed edges
+    \draw[dashed] (SN1) edge[out=150,in=210,looseness=4] (SN1); % Self-loop
+    % \draw[dashed] (SN1) edge[out=150,in=210,looseness=7] (SN1); % Self-loop
+    % \draw[dashed] (SN1) edge[out=30,in=-30, looseness=4] (SN1); % Self-loop
+    \draw[dashed] (SN2) edge[out=150,in=210, looseness=4] (SN2); % Self-loop
+    % \draw[dashed] (SN2) edge[out=150,in=210, looseness=7] (SN2); % Self-loop
+    % \draw[dashed] (SN2) edge[out=30,in=-30, looseness=4] (SN2); % Self-loop
+
+    \end{tikzpicture}
+  \end{minipage}
+  \hspace{2cm}
+  \begin{tikzpicture}[
+      baseline=(current bounding box.north),
+      node distance=2cm,
+      >={Stealth[scale=1.2]},
+      every edge/.style={draw, ->},
+      solidnode/.style={draw, circle, minimum size=1.2cm},
+      dashednode/.style={draw, dashed, circle, minimum size=1.2cm},
+      startnode/.style={solidnode, fill=black!20},
+      errornode/.style={solidnode, fill=red!20}
+  ]
+
+  % Nodes
+  \node[startnode] (start) {start};
+  \node[dashednode, below=1cm of start] (L1) {$l_{n-1}$};
+  \node[solidnode, below=1cm of L1] (L) {$l_n$};
+  \node[dashednode, below=1cm of L] (L2) {$l_{n+1}$};
+  \node[dashednode, below=1cm of L, left=1 cm of L2] (Lk) {$l_{n+k}$};
+  \node[errornode, below=1cm of L2] (error) {error};
+
+  % Edges
+  \draw[dashed, dotted] (start) -- (L1); % Dotted-dashed entry
+  \path (L1) edge[dashed] (L)
+      (L) edge node[left, right,font=\scriptsize, align=left] {%
+        [$\neg exp_n$] \\
+            $\text{wp} := wp_{s_ni}$ \\
+            $\text{run} := \text{true}$%
+        } (L2)
+      (L2) edge[dashed, out=30, in=-30] (L)
+      (L) edge[dashed]  (Lk)
+      (Lk) edge[dashed, out=70, in=185]  (L);
+
+  \draw[dashed, dotted] (L2) -- (error);
+  \draw[dashed, dotted] (Lk) -- (error);
+
+  % Additional dashed edges
+  % \draw[dashed] (L1) to[out=150,in=210,looseness=4] (L1); % Self-loop
+  % \draw[dashed] (L2) to[out=150,in=210,looseness=4] (L2); % Self-loop
+  % \draw[dashed] (Lk) to[out=150,in=210,looseness=4] (Lk); % Self-loop
+
+  \end{tikzpicture}
+\caption{Comparison of a generic witness XCFA (left) and a generic program 
+XCFA (right). Dashed nodes or edges are optional. Dotted lines represent an 
+abstracted list of segments. Each XCFA has a start and an error location.}
+  \label{fig:combined}
+\end{figure}
+
+Now, let's discuss how the multi-analysis is run. We begin from the \texttt{start} node in both XCFAs. 
+The program XCFA's execution proceeds until a waypoint is encountered. Suppose the current waypoint 
+reached is $\texttt{wp}_{s_ni}$.
+The \texttt{wp} variable is set to this current waypoint, $\texttt{wp}_{s_ni}$, and the \texttt{run}
+variable is set to \texttt{true}, indicating that a waypoint has been processed and the witness XCFA 
+should now execute. The $\texttt{run} := \texttt{true}$ assignment is associated with every waypoint
+location in the program XCFA, while a $\texttt{run} := \texttt{false}$ assignment is present on every
+edge of the witness XCFA. This detail was abstracted away previously, but here it can be clearly seen 
+that every edge of the witness XCFA has the $\texttt{run} := \texttt{false}$ assignment.
+Thus, after the \texttt{run} variable is set to \texttt{true} by the program XCFA, control transfers to the witness XCFA.
+
+
+
+\textbf{The variables and the state are shared between the XCFAs}, so the witness XCFA utilizes the set
+\texttt{wp} variable and the current program state to take one step.
+The \texttt{wp} variable, in conjunction with edge guards, is used to determine which edge (and thus 
+which waypoint) is currently being evaluated. The conditions of this chosen edge are then checked for satisfiability.
+If the guard conditions on this edge are not met, the execution halts, and the witness is deemed invalid. 
+Conversely, if the guard conditions are met, depending on the \texttt{wp} variable, the witness XCFA may 
+either remain in the current segment or transition to the next one:
+\begin{itemize}
+    \item If \texttt{wp} does not correspond to a waypoint within the current segment, the segment 
+      guard edge is taken, and the witness XCFA remains in the current segment.
+    \item If \texttt{wp} corresponds to one of the \texttt{avoid} edges, the witness XCFA remains 
+      in the current segment.
+    \item If \texttt{wp} corresponds to the \texttt{follow} waypoint, the witness XCFA transitions 
+      to the next segment.
+\end{itemize}
+After an edge in the witness XCFA is taken, the \texttt{run} variable is set to \texttt{false}, 
+signaling that the program XCFA now resumes control of the execution.
+This process continues until the error states of both XCFAs are reached simultaneously, at which point 
+the witness is considered valid.
+
 
 \section{Example}
-To clarify how the validator works, we provide a detailed example of its execution.
-Displayed below is an unsafe program, accompanied by its corresponding violation witness.
+To clarify how the validator works, Figures~3.8 and~3.9 display an example of an unsafe C program 
+and a corresponding violation witness for this program, along with their respective XCFAs.
+In this context, the \texttt{nondet()} function returns a nondeterministic value within the \
+range of 0 to 255, inclusive (i.e., the range of an \texttt{unsigned char}).
 
-\begin{lstlisting}[style=c,caption=C Program,label=lst:code]
+\begin{figure}[H]
+  \centering
+  \begin{minipage}[t]{0.35\textwidth}
+\begin{lstlisting}[
+    style=c,
+    label=lst:code,
+    numbers=left,
+    firstnumber=1,
+    numberstyle=\tiny\color{gray}
+]
 int main() {
   unsigned char n = nondet();
-  if (n == 0) return 0;
-  
+  if (n == 0) return 0; 
+
   unsigned char v = 0;
   unsigned char s = 0;
-  unsigned int i = 0;
-  
+  unsigned int i = 0; 
   while (i < n) {
     v = nondet();
     s += v;
     ++i;
-  }
-  
-  if (s < v) { reach_error(); return 1; }
-  if (s > 65025) { reach_error(); return 1; }
-  
-  return 0;
-}
-\end{lstlisting}
+  } 
 
-\begin{lstlisting}[style=yaml, language=C,caption=Violation Witness]
+  if (s < v) { 
+    reach_error(); 
+    return 1; 
+  }
+
+  return 0;
+}\end{lstlisting}
+  \end{minipage}
+  \hspace{1cm}
+\begin{tikzpicture}[
+    node distance=2cm,
+    >={Stealth[scale=1.2]},
+    baseline=(current bounding box.north),
+    every edge/.style={draw, ->},
+    solidnode/.style={draw, circle, minimum size=1.0cm},
+    startnode/.style={solidnode, fill=black!20},
+    errornode/.style={solidnode, fill=red!20},
+    retnode/.style={solidnode, fill=green!20},
+    font=\scriptsize
+]
+
+% Main nodes
+\node[startnode] (l0) {$\text{start}$};
+\node[solidnode, below of=l0] (l1) {$\ell_1$};
+\node[retnode, below left=1.5cm of l1] (ret0) {ret};
+\node[solidnode, below right=1.5cm of l1] (l2) {$\ell_2$};
+\node[solidnode, below of=l2] (l3) {$\ell_3$};
+\node[solidnode, left of=l3, node distance=3cm] (l4) {$\ell_4$};
+\node[solidnode, below of=l4] (l5) {$\ell_5$};
+\node[solidnode, below of=l3] (l6) {$\ell_6$};
+\node[retnode, below of=l6] (ret1) {ret};
+\node[solidnode, left of=ret1] (l7) {$\ell_7$};
+\node[errornode, below of=l7] (err) {err};
+
+% Edges with consistent multi-line labels
+\path 
+    % Initial assignment of n
+    (l0) edge node[right, align=left] {%
+        $n := \text{nondet}()$ \\
+        $\text{wp} := 1$ \\
+        $\text{run} := \text{true}$%
+    } (l1)
+    
+    % Branch on n == 0
+    (l1) edge node[above left, align=left] {%
+        $[n = 0]$ \\
+    } (ret0)
+    (l1) edge node[above right, align=left] {%
+        $[n \neq 0]$ \\
+    } (l2)
+    
+    % Initialize variables v, s, i
+    (l2) edge node[right, align=left] {%
+        $v,s,i := 0$ \\
+        $\text{wp} := 2$ \\
+        $\text{run} := \text{true}$%
+    } (l3)
+    
+    % Loop condition
+    (l3) edge node[above, align=left] {%
+        $[i < n]$ \\
+    } (l4)
+    (l3) edge node[right, align=left] {%
+        $[i \geq n]$ \\
+    } (l6)
+    
+    % Generate new v
+    (l4) edge node[left, align=left] {%
+        $v := \text{nondet}()$ \\
+        $\text{wp} := 3$ \\
+        $\text{run} := \text{true}$%
+    } (l5)
+    
+    % Loop body
+    (l5) edge[bend left=30] node[below, align=left] {%
+        $s := s + v$ \\
+        $i := i + 1$ \\
+    } (l3)
+    
+    % Final check
+    (l6) edge node[left, align=left] {%
+        $[s < v]$ \\
+        $\text{wp} := 4$ \\
+        $\text{run} := \text{true}$%
+    } (l7)
+    (l6) edge node[below right, align=left] {%
+        $[s \geq v]$ \\
+    } (ret1)
+    
+    % Error transition
+    (l7) edge node[right, align=left] {%
+        $\text{wp} := 5$ \\
+        $\text{run} := \text{true}$%
+    } (err);
+
+\end{tikzpicture}
+\caption{The unsafe C program on the left and its corresponding XCFA on the right.}
+  \label{fig:combined}
+\end{figure}
+
+
+
+\begin{figure}[H]
+  \centering
+  \begin{minipage}[t]{0.43\textwidth}
+\begin{lstlisting}[style=yaml]
 - entry_type: "violation_sequence"
 metadata: <...>
-content:
-add n here
-- segment: 
-  - waypoint:
-    type: "branching"
-    action: "follow"
-    constraint: "false"
-    location: 11:3
-- segment: 
-  - waypoint:
-    type: "assumption"
-    action: "follow"
-    constraint: "v == 0"
-    location: 15:3
 - segment:
   - waypoint:
     type: "assumption"
     action: "follow"
-    constraint: "s == 0"
-    location: 16:3
+    constraint:"n == 2"
+    location: 3:3
+- segment: 
+  - waypoint:
+    type: "assumption"
+    action: "follow"
+    constraint: "v==0 && s==0 && i==0"
+    location: 8:3
 - segment:
+  - waypoint:
+    type: "assumption"
+    action: "avoid"
+    constraint: "v<=254"
+    location: 10:5
   - waypoint:
     type: "branching"
     action: "follow"
     constraint: "true"
-    location: 17:3
+    location: 14:3
 - segment:
   - waypoint:
     type: "target"
     action: "follow"
-    location: 23:3
-\end{lstlisting}
+    location: 15:5\end{lstlisting}
+  \end{minipage}
+  % \hspace{2cm}
+\begin{tikzpicture}[
+    node distance=2.5cm,
+    >={Stealth[scale=1.2]},
+    baseline=(current bounding box.north),
+    every edge/.style={draw, ->},
+    solidnode/.style={draw, circle, minimum size=1.0cm},
+    startnode/.style={solidnode, fill=black!20},
+    errornode/.style={solidnode, fill=red!20},
+    font=\scriptsize
+]
 
-Unfortunetily, the XCFA of the program is quite complex and holds quite large amounts of information.
-Therefore here we are going to work with a simplied version of the program XCFA.
+% Nodes
+\node[startnode] (init) {start};
+\node[solidnode, below of=init] (S0) {$S_1$};
+\node[solidnode, below of=S0] (S1) {$S_2$};
+\node[solidnode, below of=S1] (S2) {$S_3$};
+\node[solidnode, below of=S2] (S3) {$S_4$};
+\node[errornode, below of=S3] (err) {err};
 
-Take ti from digrapth put it on mermaid and simplify bothe winesses
+% Edges using only \path
+\path (init) edge (S0)      
+      (S0) edge node[right, align=left] {%
+          $[\text{wp} = 1$ \\
+          $n = 2$]\\
+          $\text{run} := \text{false}$%
+      } (S1)
+      (S0) edge[out=135,in=225,looseness=8] node[left, align=center] {%
+          $[\text{wp} \neq 1]$\\
+          $\text{run} := \text{false}$%
+      } (S0)
+      
+      (S1) edge node[right, align=left] {%
+          $[\text{wp} = 2$ \\
+          $v,s,i = 0$] \\
+          $\text{run} := \text{false}$%
+      } (S2)
+      (S1) edge[out=135,in=225,looseness=8] node[left, align=center] {%
+          $[\text{wp} \neq 2]$\\
+          $\text{run} := \text{false}$%
+      } (S1)
+      
+      (S2) edge node[right, align=left] {%
+          $[\text{wp} = 4]$ \\
+          $\text{run} := \text{false}$%
+      } (S3)
+      (S2) edge[out=135,in=225,looseness=8] node[left, align=center] {%
+          $[\text{wp} \not\in \{3,4\}]$\\
+          $\text{run} := \text{false}$%
+      } (S2)
+      (S2) edge[out=45,in=315,looseness=8] node[right, align=left] {%
+          $[\text{wp} = 3$ \\
+          $!(v \leq 255)]$ \\
+          $\text{run} := \text{false}$%
+      } (S2)
+      
+      (S3) edge node[right, align=left] {%
+          $[\text{wp} = 5]$\\
+          $\text{run} := \text{false}$%
+      } (err)
+      (S3) edge[out=135,in=225,looseness=8] node[left, align=center] {%
+          $[\text{wp} \neq 5]$\\
+          $\text{run} := \text{false}$%
+      } (S3);
+\end{tikzpicture}
+\caption{The violation witness on the left and its corresponding XCFA on the right.}
+  \label{fig:combined}
+\end{figure}
 
-Here is the witness:
+Now lets run the algorithm on this example.
+Well now we can choose the order we can vites the nodes, it can be BFS or DFS order.
+In this case here I will chose BFS to have a more simple explanation.
 
-Here are the witness after the waypoint are mached
-Here show both XCFAs and show the code in between pointing wher the witnesses are pointing
 
-Explain hwo the the XCFAs would be executed one after each other.
 
-\section{Theta's Validation Capabilities Compared to Other Verification Tools}
+
+\section{Limitations}
+
+switches
+function return and fucntion enter

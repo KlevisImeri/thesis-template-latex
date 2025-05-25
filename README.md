@@ -26,14 +26,6 @@ Future works under conclusion
 
 
 
-
-
-Before conclusuion: Related works chapeter Witness Validation on other Tool + heta’s Validation Capabilities Compared to Other Verification Tools = related work
-
-
-
-Error: branching witness
-
 https://www.doi2bib.org/bib/
 https://scholar.google.com/
 https://dblp.org/
