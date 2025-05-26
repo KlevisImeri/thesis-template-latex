@@ -192,7 +192,11 @@ or what happens when these models interact in a defined manner. Informally, a Pr
 Automaton is precisely this: the result of combining two formalisms. Multi-analysis, then,
 is the analysis performed on this resulting Product Automaton. While you can theoretically 
 combine any two formalisms, in our specific case, we're interested in the product automaton 
-of two CFAs.
+of two (X)CFAs. Infomally the way you think about is that the states become pairs of staes
+in other words the states of the two automaton are carticean product togther and then you 
+have to give how do we transition between these product states. Usully this dependes on
+hte properties of the two automaton and the way you specify to combine them together.
+For example in our validator we combine the witness XCFA and the program XCFA like this.
 
 % More precisely:
 % \begin{definition}[Product Automaton of CFA's]
@@ -212,7 +216,7 @@ of two CFAs.
 %     \item $l_0 = (l_{0_1}, l_{0_2})$ (initial location)
 %     \item $E \subseteq L \times \mathrm{Ops} \times L$ (transitions defined below)
 % \end{itemize}
-
+%
 % \noindent The edge set $E$ is constructed as follows:
 % \begin{itemize}
 %     \item \textbf{Synchronized transitions}:
@@ -227,7 +231,7 @@ of two CFAs.
 %         \]
 %         (Analogously for assignments in $\text{CFA}_2$ and assumptions in $\text{CFA}_1$)
 %     \end{itemize}
-    
+%     
 %     \item \textbf{Interleaved transitions}:
 %     \begin{itemize}
 %         \item For any edge $(l_1, \mathrm{op}, l_1') \in E_1$:

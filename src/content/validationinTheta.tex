@@ -582,6 +582,56 @@ signaling that the program XCFA now resumes control of the execution.
 This process continues until the error states of both XCFAs are reached simultaneously, at which point 
 the witness is considered valid.
 
+Even though one might intuitively consider the states of the program XCFA and the witness XCFA
+separately, they are, in this context, components of product states within a unified product
+automaton. The analysis method employed, termed multianalysis, operates directly on this
+product automaton. The product states are pairs, denoted as $(s, l)$, where $s$ is a state from the
+witness XCFA and $l$ is a state from the program XCFA. A set, which we will call
+$\text{\texttt{states}}$, is maintained to hold the current product states being processed.
+For traversing these product states, various strategies such as Breadth-First Search (BFS) or
+Depth-First Search (DFS) can be employed. For this explanation, a BFS order will be adopted
+due to its illustrative simplicity. However, it is worth noting that for the specific example
+discussed below, the choice between BFS and DFS will not make a discernible difference in the
+trace. This is because the set of current states, $\text{\texttt{states}}$, will consistently
+contain only a single state. This is a consequence of the witness (in the example below, as not
+every witness would necessarily provide such a narrow path) explicitly dictating which branch the
+program must take at any decision point, thereby preventing the simultaneous exploration of
+multiple paths.
+
+The construction of edges in this product automaton is governed by the edges of the constituent XCFAs:
+\begin{itemize}
+    \item If an edge exists in the witness XCFA from state $s_i$ to $s_k$, then for any program XCFA
+    state $l$, an edge is formed in the product automaton from the product state $(s_i, l)$ to $(s_k, l)$.
+    \item Symmetrically, if an edge exists in the program XCFA from state $l_i$ to $l_k$, then for
+    any witness XCFA state $s$, an edge is formed in the product automaton from
+    the product state $(s, l_i)$ to $(s, l_k)$.
+\end{itemize}
+
+We also require a set to maintain the shared state, which we will call $\text{\texttt{varsExpl}}$.
+For this example, we will employ an explicit analysis, meaning we track explicit variable values
+rather than symbolic conditions, for simplicity.
+The execution begins with $\text{\texttt{states}} = \{ (\text{start}_p, \text{start}_w) \}$ and
+$\text{\texttt{varsExpl}} = \{ \}$.
+Variables are initially undefined and will be set upon their first assignment.
+
+Both XCFAs are positioned at their respective start nodes. Since $\text{\texttt{run}}$ is
+initially $\text{\texttt{undefined}}$, by default the program XCFA proceeds first.
+
+The core algorithmic process is relatively straightforward: the active XCFA is identified, its
+permissible outgoing edges are determined, and these edges are then traversed to explore the states
+reached. This transition can be represented by the set of $\text{edges\_taken}$ and the resulting
+state. A single step of the algorithm can thus be thought of as:
+\begin{lstlisting}[style=C, language=C]
+||||| Step n |||||
+edges_taken = {...}; // edges where the enabling condition evaluated to true
+states = {...};        // resulting states of taking those edges
+varsExpl = {...};    // the explicit shared state of variables belonging to the XCFAs.
+\end{lstlisting}
+These steps are run until the state $\text{\texttt{states}} = \{(\text{error}_p, \text{error}_w)\}$ is reached,
+where $\text{error}_p$ is the error state of the program XCFA and $\text{error}_w$ is the error state of the
+witness XCFA. If we manage to reach this state, it means we have successfully passed all the segments
+and the waypoints in them.
+
 
 \section{Example}
 To clarify how the validator works, Figures~3.8 and~3.9 display an example of an unsafe C program 
@@ -589,7 +639,7 @@ and a corresponding violation witness for this program, along with their respect
 In this context, the \texttt{nondet()} function returns a nondeterministic value within the \
 range of 0 to 255, inclusive (i.e., the range of an \texttt{unsigned char}).
 
-\begin{figure}[H]
+\begin{figure}[htbp]
   \centering
   \begin{minipage}[t]{0.35\textwidth}
 \begin{lstlisting}[
@@ -714,7 +764,7 @@ int main() {
 
 
 
-\begin{figure}[H]
+\begin{figure}[htbp]
   \centering
   \begin{minipage}[t]{0.43\textwidth}
 \begin{lstlisting}[style=yaml]
@@ -801,7 +851,7 @@ metadata: <...>
       } (S2)
       (S2) edge[out=45,in=315,looseness=8] node[right, align=left] {%
           $[\text{wp} = 3$ \\
-          $!(v \leq 255)]$ \\
+          $!(v \leq 254)]$ \\
           $\text{run} := \text{false}$%
       } (S2)
       
@@ -818,14 +868,206 @@ metadata: <...>
   \label{fig:combined}
 \end{figure}
 
-Now lets run the algorithm on this example.
-Well now we can choose the order we can vites the nodes, it can be BFS or DFS order.
-In this case here I will chose BFS to have a more simple explanation.
+Let's trace the execution steps of the algorithm.
+The initial state is defined as follows:
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 0 |||||
+edges_taken = {};
+states = {(start_w, start_p)}; 
+varsExpl = {}; 
+\end{lstlisting}
+We consider the edge from $\text{start}_\text{w}$ to $l_1$ in the program XCFA.
+The assignment $n := \text{nondet()}$ is equivalent to the condition $0 \le n \le 255$.
+However, since predicate analysis is not utilized in this context, this broad range is
+typically not explicitly tracked. This initial range is, nonetheless, factored in if another
+condition emerges that further constrains it. Consequently, $n$ will only be included in the
+set of explicit variables if its range is reduced to a singular, precisely determined value.
+Since the start state of the program XCFA does not have a loop edge to itself, and assuming the
+transition $\text{start}_\text{w} \to l_1$ is taken, the new program state is $l_1$.
+The witness XCFA remains in $\text{start}_\text{p}$.
+Thus, the new combined state discovered is $(l_1, \text{start}_\text{p})$.
+In this transition, \texttt{wp} is set to $1$ and \texttt{run} becomes true.
+Thus, the state after this step is:
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 1 |||||
+edges_taken = {(start_w, l_1)};
+states = {(l_1, start_p)}; 
+varsExpl = {wp=1, run=true}; 
+\end{lstlisting}
+Since \texttt{run} is set to true, we proceed with the witness XCFA.
+In the witness XCFA, currently in state $\text{start}_\text{p}$, we first take the edge
+$\text{start}_\text{p} \to s_1$. This transition does not set \texttt{run} to false,
+so we would typically continue within the witness XCFA if further local transitions were possible
+and highest priority. Assuming this is the chosen transition for this step:
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 2 |||||
+edges_taken = {(start_p, s_1)};
+states = {(l_1, s_1)}; 
+varsExpl = {wp=1, run=true}; 
+\end{lstlisting}
+The next possible edges from $s_1$ in the witness XCFA are $s_1 \to s_1$ and $s_1 \to s_2$.
+For the edge $s_1 \to s_1$, the condition does not hold (as \texttt{wp} is 1), so this edge is not taken.
+However, for the edge $s_1 \to s_2$, the condition $\text{wp}=1$ holds, so we take this edge.
+This indicates that we have passed the current segment and now move to the next segment in the witness.
+Here, $n$ is assigned a value (in this instance, $n=2$), which considerably narrows down the potential paths to an error state.
+The resulting step is:
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 3 |||||
+edges_taken = {(s_1, s_2)};
+states = {(l_1, s_2)}; 
+varsExpl = {n=2, wp=1, run=false}; 
+\end{lstlisting}
+The \texttt{run} variable has now been set to false, so control returns to the program XCFA.
+From state $l_1$ in the program XCFA, the possible edges are $l_1 \to \text{ret}$ and $l_1 \to l_2$.
+We do not take the edge $l_1 \to \text{ret}$ because the witness set $n$ to $2$, and $2 \neq 0$.
+The other edge, $l_1 \to l_2$, is taken, so the step is:
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 4 |||||
+edges_taken = {(l_1, l_2)};
+states = {(l_2, s_2)}; 
+varsExpl = {n=2, wp=1, run=false}; 
+\end{lstlisting}
+Let's fast-forward the algorithm. The subsequent steps, until both XCFAs reach their error
+locations, are summarized below. Each block represents one step.
 
-
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 5 |||||
+edges_taken = {(l_2, l_3)};
+states = {(l_3, s_2)};
+varsExpl = {v=0, s=0, i=0, n=2, wp=2, run=true};
+\end{lstlisting}
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 6 |||||
+edges_taken = {(s_2, s_3)};
+states = {(l_3, s_3)};
+varsExpl = {v=0, s=0, i=0, n=2, wp=2, run=false};
+\end{lstlisting}
+Here, if $v, s, \text{and } i$ were not zero, the assumption would have failed, and the witness
+would get stuck. Consequently, our analysis would conclude with an invalid witness.
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 7 |||||
+edges_taken = {(l_3, l_4)};
+states = {(l_4, s_3)};
+varsExpl = {v=0, s=0, i=0, n=2, wp=2, run=false};
+\end{lstlisting}
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 8 |||||
+edges_taken = {(l_4, l_5)};
+states = {(l_5, s_3)};
+varsExpl = {s=0, i=0, n=2, wp=3, run=true};
+\end{lstlisting}
+The variable $v$ gets removed from the explicit state because, as mentioned before, \texttt{nondet()}
+assigns a range (e.g., $[0,255]$), not a single value required for an explicit state representation here.
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 9 |||||
+edges_taken = {(s_3, s_3)}; // The one with the condition !(v<=254)
+states = {(l_5, s_3)};
+varsExpl = {v=255, s=0, i=0, n=2, wp=3, run=false};
+\end{lstlisting}
+As the \texttt{nondet} assignment put $v$ in the range $[0, 255]$, the assumption $!(v\le254)$
+implied that $v$ can only be $255$.
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 10 |||||
+edges_taken = {(l_5, l_3)};
+states = {(l_3, s_3)};
+varsExpl = {v=255, s=255, i=1, n=2, wp=3, run=false};
+\end{lstlisting}
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 11 |||||
+edges_taken = {(l_3, l_4)}; // We enter the loop again
+states = {(l_4, s_3)};
+varsExpl = {v=255, s=255, i=1, n=2, wp=3, run=false};
+\end{lstlisting}
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 12 |||||
+edges_taken = {(l_4, l_5)};
+states = {(l_5, s_3)};
+varsExpl = {s=255, i=1, n=2, wp=3, run=true}; // v removed from explicit state
+\end{lstlisting}
+Even though \texttt{wp} stays the same, \texttt{run} is set to true, so the witness XCFA takes the turn.
+$v$ is again removed from the explicit state for the same reason as before.
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 13 |||||
+edges_taken = {(s_3, s_3)};
+states = {(l_5, s_3)};
+varsExpl = {v=255, s=255, i=1, n=2, wp=3, run=false}; // v becomes 255
+\end{lstlisting}
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 14 |||||
+edges_taken = {(l_5, l_3)};
+states = {(l_3, s_3)};
+varsExpl = {v=255, s=254, i=2, n=2, wp=3, run=false}; // s becomes 254
+\end{lstlisting}
+Notice here that $s$ experienced an overflow and became $254$.
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 15 |||||
+edges_taken = {(l_3, l_6)}; // Exit the loop
+states = {(l_6, s_3)};
+varsExpl = {v=255, s=254, i=2, n=2, wp=3, run=false};
+\end{lstlisting}
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 16 |||||
+edges_taken = {(l_6, l_7)};
+states = {(l_7, s_3)};
+varsExpl = {v=255, s=254, i=2, n=2, wp=4, run=true};
+\end{lstlisting}
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 17 |||||
+edges_taken = {(s_3, s_4)};
+states = {(l_7, s_4)};
+varsExpl = {v=255, s=254, i=2, n=2, wp=4, run=false};
+\end{lstlisting}
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 18 |||||
+edges_taken = {(l_7, err_p)};
+states = {(err_p, s_4)};
+varsExpl = {v=255, s=254, i=2, n=2, wp=5, run=true};
+\end{lstlisting}
+\begin{lstlisting}[style=C, language=C, basicstyle=\ttfamily\footnotesize, columns=flexible,
+    breaklines=true, breakatwhitespace=true, tabsize=2, showstringspaces=false]
+||||| Step 19 |||||
+edges_taken = {(s_4, err_w)};
+states = {(err_p, err_w)};
+varsExpl = {v=255, s=254, i=2, n=2, wp=5, run=false};
+\end{lstlisting}
+As you can see here, we reached the error states in both XCFAs ($\text{err}_\text{p}$ for program,
+$\text{err}_\text{w}$ for witness), which means our violation witness is a valid witness.
 
 
 \section{Limitations}
 
-switches
-function return and fucntion enter
+As mentioned in Section 2.1, violation witnesses also include \texttt{function\_enter} and
+\texttt{function\_return} waypoints. Although their implementation is expected to be
+straightforward, these two waypoint types are not currently supported.
+Additionally, \texttt{switch} statements are not yet supported, though work is in progress
+to enable their functionality.
+
+The previously mentioned limitations are relatively minor issues that could be resolved
+quickly within the existing framework. However, a more significant challenge, which the
+Theta team is addressing, was the limited metadata available for the program XCFA
+concerning the program structure and specific locations. This has now been partially
+addressed with the introduction of ARG node metadata. Nevertheless, this type of metadata
+can still be prone to bugs, potentially leading to failures in waypoint matching between
+the XCFAs.
+
+Although the implemented validator has undergone considerable testing, its complexity
+necessitates a more comprehensive testing suite.

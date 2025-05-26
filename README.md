@@ -2,8 +2,12 @@ For the latex text above:
 - fix the structure
 - correct any spelling error
 - paraphraze it just a bit to make it sound nicer but please keep everything that is said as it is
-- write it in latex
+- write it in latex in a code block so i can copy it
 - please write only the latex as output. Dont give me any other sugesstion.
+- done use any subsections or chapetrs or document headline they are already made
+- Please maek the names conssitent and also break after a 100 leters. 
+- Dont remove any senctices but try to make the layout minimal than means that 
+when the latex is rendered it should be visually compressed.
 
 Chapter create xcfa from Witness program
 How it works more exacly Intution why it works
