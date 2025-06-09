@@ -1,15 +1,9 @@
 \chapter{Background}
 
-\section{Software Verification}
-Software has become indispensable in modern life, permeating everything from smartphones to 
-satellites. Software inevitably contains bugs that require fixing. Software verification is 
-the process of identifying these bugs in computer programs or demonstrating their absence. 
-Various software verification methods exist, ranging from human-driven approaches like code 
-reviews and software testing (including unit and integration testing) to automated techniques 
-such as static and dynamic analysis. Formal methods, including model checking, offer mathematical 
-approaches to software verification. Model checking is a formal verification technique that 
+\section{Model Checking}
+Model checking is a formal verification technique that 
 systematically explores all possible states and transitions (the state space) of a formal model 
-(representation) of the system to determine if it satisfies a formally specified property~\cite{HandbookMC} .
+(representation) of the system to determine if it satisfies a formally specified property~\cite{HandbookMC}~\cite{Akos} .
 This process typically involves:
 
 \begin{algorithm}
@@ -18,7 +12,7 @@ This process typically involves:
 \State Let $q :=$ desired state to reach
 \State Let $Q :=$ set of initial states
 \While{$q \notin Q$ and not all states visited}
-  \State $Q \gets \text{Tran}(Q)$
+  \State $Q \gets Q \cup \text{Tran}(Q)$
 \EndWhile
 \end{algorithmic}
 \end{algorithm}
@@ -32,21 +26,20 @@ This process typically involves:
 %   Q = tran(Q)
 % }
 
-Numerous verification tools have been created by different organizations and research teams. 
-Some prominent examples are \texttt{CPAchecker}, \texttt{UAutomizer}, \texttt{Theta}.
-Despite being developed independently, these tools can still share their results with other tools
-through witnesses.
+
 
 \section{Witnesses}
+\label{sec:witnesses}
 Verifier tools analyze a program along with a safety property and other specifications, ultimately
 generating a result and supplementary details that support this result. This extra information, 
 known as a witness, is structured according to a defined and widely recognized format, enabling 
-compatibility across numerous tools. The initial proposed format for witnesses was witness1.0, which 
-utilized GraphML. Presently, the most recent proposed witness format is witnesses2.0, which employs YAML.
+compatibility across numerous tools. The initial proposed format for witnesses was Witness 1.0, which 
+utilized GraphML~\cite{witness1}. Presently, the most recent proposed witness format is Witness 2.0, 
+which employs YAML~\cite{witness2}.
 
 The structure of 2.0 witnesses is syntactically defined by three key components:
 \begin{itemize}
-  \item \texttt{entry\_type} – the type of the witness
+  \item \texttt{entry\_type} – the type of the witness ("violation\_sequence" or "invariant\_set")
   \item \texttt{metadata} – metadata about the witness
   \item \texttt{content} – content that varies depending on the type of witness
 \end{itemize}
@@ -54,12 +47,15 @@ The structure of 2.0 witnesses is syntactically defined by three key components:
 There are two categories of witnesses:
 
 \begin{itemize}
-  \item \textbf{Violation Witnesses (Counterexamples)}\\
+  \item \textbf{Violation Witnesses (Counterexamples)}~\cite{witness2}~\cite{ViolationWitnessSchema} \\
   These are generated when the verifier finds that a safety property has been violated. 
   They provide a vaguely define program path illustrating how the violation is achieved. 
   The content comprises a sequence of segments, with a final segment at the end.
 
-  Each segment contains \textit{waypoints}, which are specific program locations the execution passes through. A waypoint includes:
+  Each segment contains \textit{waypoints}, which are specific program locations the execution passes through.
+  A segment consists of any number of avoid waypoints, and it concludes with a single
+  follow waypoint signalling the segment's end.
+  A waypoint includes:
   \begin{itemize}
     \item \texttt{type} – such as \texttt{assumption}, \texttt{branching}, \texttt{target}, \texttt{function\_enter}, or \texttt{function\_return}
     \item \texttt{constraint} – describes the program state or path condition
@@ -67,7 +63,7 @@ There are two categories of witnesses:
     \item \texttt{action} – specifies whether to avoid or pass through this waypoint
   \end{itemize}
 
-  \item \textbf{Correctness Witnesses}\\
+  \item \textbf{Correctness Witnesses}~\cite{witness2}~\cite{CorrectnesWitnessSchema}\\
   These are produced when the verifier proves the program satisfies its specification. 
   The content consists of \textit{invariant elements}, each of which contains:
   \begin{itemize}
@@ -81,7 +77,7 @@ There are two categories of witnesses:
 \begin{figure}[h]
   \centering
   \includegraphics[width=1\textwidth]{figures/verifier.png}
-  \caption{Verificatoin}
+  \caption{Verification}
   \label{fig:Verification}
 \end{figure}
 
@@ -107,7 +103,8 @@ Witnesses generated by different tools are typically cross-checked to ensure acc
 A witness, being structured data in a standard format, facilitates faster result validation
 across various tools compared to a complete reverification. While verification and validation 
 are often confused, validation specifically relies on a witness, which offers additional 
-information about the program's verification process. Witnesses accelerate this process by 
+information about the program's verification process~\cite{witness2}~\cite{witness1}. 
+Witnesses accelerate this process by 
 providing precomputed verification data. Furthermore, they enable the validation of results 
 obtained from other tools.
 
@@ -159,8 +156,7 @@ A control-flow automaton is a tuple $\mathrm{CFA} = (V, L, l_0, E)$ where:
 \end{itemize}
 \end{definition}
 
-
-Evidently, a Control Flow Automaton (CFA) is a formalism based on graphs. 
+Evidently, a Control Flow Automaton (CFA) is a formalism based on graphs~\cite{Akos}.
 Furthermore, assignment and assumption statements can be represented as transition functions, 
 making them applicable in model checking.
 \begin{align}
@@ -189,14 +185,81 @@ Another formalism we'll need to understand is the Product Automaton. The intuiti
 importance lies in its ability to represent the combination of different formalism. We 
 often model individual systems separately, but we need a way to understand their combined behavior, 
 or what happens when these models interact in a defined manner. Informally, a Product 
-Automaton is precisely this: the result of combining two formalisms. Multi-analysis, then,
+Automaton is precisely this: the result of combining two formalisms. \texttt{Multianalysis}, then,
 is the analysis performed on this resulting Product Automaton. While you can theoretically 
 combine any two formalisms, in our specific case, we're interested in the product automaton 
-of two (X)CFAs. Infomally the way you think about is that the states become pairs of staes
-in other words the states of the two automaton are carticean product togther and then you 
-have to give how do we transition between these product states. Usully this dependes on
-hte properties of the two automaton and the way you specify to combine them together.
-For example in our validator we combine the witness XCFA and the program XCFA like this.
+of two (X)CFAs. The states of the combined system can be conceptualized as pairs, meaning the
+state space is the Cartesian product of the states from the two individual automata.
+Subsequently, it is necessary to define the transition rules between these product states.
+Typically, these transitions depend on the properties of both automata and the
+specified method of their combination. 
+Section~\ref{sec:xcfa_product} details the construction of the product
+automaton from the witness XCFA and the program XCFA. 
+
+% Let the Program XCFA be $\mathcal{X}_P = (L_P, \text{Ops}_P, l_{P,0}, \mathcal{E}_P, \mathcal{V}_P)$, where:
+% \begin{itemize} \itemsep0pt \parskip0pt \parsep0pt
+%     \item $L_P$ is the set of locations.
+%     \item $\text{Ops}_P$ is the set of operations (guards and assignments) on edges.
+%     \item $l_{P,0} \in L_P$ is the initial location.
+%     \item $\mathcal{E}_P \subseteq L_P \times \text{Ops}_P \times L_P$ is the set of edges.
+%     \item $\mathcal{V}_P$ is the set of variables local to the program XCFA.
+% \end{itemize}
+% Let the Witness XCFA be $\mathcal{X}_W = (S_W, \text{Ops}_W, s_{W,0}, \mathcal{E}_W, \mathcal{V}_W)$, where:
+% \begin{itemize} \itemsep0pt \parskip0pt \parsep0pt
+%     \item $S_W$ is the set of locations (states).
+%     \item $\text{Ops}_W$ is the set of operations on edges.
+%     \item $s_{W,0} \in S_W$ is the initial location.
+%     \item $\mathcal{E}_W \subseteq S_W \times \text{Ops}_W \times S_W$ is the set of edges.
+%     \item $\mathcal{V}_W$ is the set of variables local to the witness XCFA.
+% \end{itemize}
+% Let $\mathcal{V}_{Expl}$ be the set of shared variables tracked explicitly in $\texttt{varsExpl}$.
+% The global set of variables is $\mathcal{V}_{Global} = \mathcal{V}_P \cup \mathcal{V}_W \cup
+% \mathcal{V}_{Expl} \cup \{\texttt{run}\}$.
+% A valuation $\sigma$ maps variables in $\mathcal{V}_{Global}$ to their values.
+% $\sigma(\texttt{varsExpl})$ denotes the current mapping of explicit shared variables.
+%
+% The \textbf{Product XCFA for Witness Validation}, denoted $\mathcal{X}_{Prod}$, is defined as
+% $\mathcal{X}_{Prod} = (Q_{Prod}, \mathcal{V}_{Global}, q_{init}, \sigma_{init}, \mathcal{E}_{Prod})$
+% where:
+% \begin{itemize} \itemsep0pt \parskip0pt \parsep0pt
+%     \item $Q_{Prod} = S_W \times L_P$. A product control location $(s,l)$ comprises a witness
+%     location $s \in S_W$ and a program location $l \in L_P$.
+%     \item $\mathcal{V}_{Global}$ is the set of all variables.
+%     \item $q_{init} = (s_{W,0}, l_{P,0}) \in Q_{Prod}$ is the initial product control location.
+%     \item $\sigma_{init}$ is the initial valuation:
+%     \begin{itemize} \itemsep0pt \parskip0pt \parsep0pt
+%         \item For $v \in \mathcal{V}_P \cup \mathcal{V}_W \cup \mathcal{V}_{Expl}$,
+%         $\sigma_{init}(v)$ is undefined.
+%         \item $\sigma_{init}(\texttt{varsExpl}) = \emptyset$.
+%         \item $\sigma_{init}(\texttt{run})$ is undefined (effectively allowing the program XCFA
+%         to proceed first, equivalent to $\texttt{run}=\text{false}$ for initial step choice).
+%     \end{itemize}
+%     \item $\mathcal{E}_{Prod} \subseteq Q_{Prod} \times \text{Guard} \times \text{Action} \times
+%     Q_{Prod}$ is the set of product transitions. For an operation $\text{op}$ consisting of a guard
+%     $[\phi]$ and assignments $\alpha$:
+%     \begin{itemize} \itemsep0pt \parskip0pt \parsep0pt
+%         \item \textbf{Witness XCFA Transitions}: For each $(s_i, ([\phi_W], \alpha_W), s_k) \in
+%         \mathcal{E}_W$ and for every $l \in L_P$:
+%         \[
+%         \big( (s_i, l), [(\texttt{run} = \text{true}) \land \phi_W], \alpha_W, (s_k, l) \big)
+%         \in \mathcal{E}_{Prod}
+%         \]
+%         The action $\alpha_W$ may update variables in $\mathcal{V}_W$, $\mathcal{V}_{Expl}$
+%         (affecting $\texttt{varsExpl}$), and $\texttt{run}$.
+%
+%         \item \textbf{Program XCFA Transitions}: For each $(l_j, ([\phi_P], \alpha_P), l_m) \in
+%         \mathcal{E}_P$ and for every $s \in S_W$:
+%         \[
+%         \big( (s, l_j), [(\texttt{run} = \text{false} \lor \texttt{run} = \text{undefined}) \land
+%         \phi_P], \alpha_P, (s, l_m) \big) \in \mathcal{E}_{Prod}
+%         \]
+%         The action $\alpha_P$ may update variables in $\mathcal{V}_P$, $\mathcal{V}_{Expl}$
+%         (affecting $\texttt{varsExpl}$), and $\texttt{run}$.
+%     \end{itemize}
+% \end{itemize}
+% A configuration of the analysis is $(q, \sigma)$, where $q \in Q_{Prod}$ and $\sigma$ is the current
+% global valuation. The set $\texttt{states}$ maintained by the analysis stores such configurations,
+% focusing on $\sigma(\texttt{varsExpl})$ for explicit values.
 
 % More precisely:
 % \begin{definition}[Product Automaton of CFA's]

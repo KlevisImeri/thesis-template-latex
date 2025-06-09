@@ -1,11 +1,12 @@
 \chapter{Validation in Theta}
 \section{Overview}
-As mention: in the tetha specification.
-"Theta is a generic, modular and configurable model checking framework developed at the Critical Systems Research Group of Budapest University of Technology and Economics, aiming to support the design and evaluation of abstraction refinement-based algorithms for the reachability analysis of various formalisms."
-The way the Validator for witness 2.0 was implented in Theta is using XCFAs and Product Automaton. Even though 
+As mentioned in \texttt{Theta}'s specification~\cite{theta}, \texttt{Theta} is a very generic and
+highly configurable framework for performing model checking.
+The way the Validator for witness 2.0 is implented in Theta is using XCFAs and Product Automaton. Even though 
 XCFA's was chosen as formalism for further extensibility in the current version of the validator only the CFA
 capabilities where used. For te moment the validator only supports Violation Witnesss. The way the violation
-witness verifier works is described in the scheme below.
+witness verifier works is described in the Figure~\ref{fig:Validation in Theta}.  
+
 
 \begin{figure}[h]
     \centering
@@ -21,7 +22,7 @@ witness verifier works is described in the scheme below.
 % flowchart TD
 %     cprogram("C Program")
 %     witness("Violation Witness 2.0")
-    
+%     
 %     subgraph verifier["Validator"]
 %         subgraph frontend["Frontend"]
 %             programXCFA("Program XCFA")
@@ -31,15 +32,15 @@ witness verifier works is described in the scheme below.
 %             programXCFAWay("Program XCFA + Waypoints")
 %             witnessXCFAWay("Witness XCFA + Waypoints")
 %         end
-        
+%         
 %         subgraph backend["Backend | Multianalyses"]
 %             multiProgram("Multianalyses Program Side")
 %             multiWitness("Multianalyses Witness Side")
 %         end
 %     end
-    
+%     
 %     output("Valid/Invalid")
-    
+%     
 %     cprogram -->|"C parsing + model transformation"| programXCFA
 %     witness -->|"YAML parsing + model transformation"| witnessXCFA
 %     programXCFA --> waypointProcessing
@@ -54,13 +55,10 @@ witness verifier works is described in the scheme below.
 There is no specification (and thus no specific safety property), because for the 
 violation witness we are checking the reachability property—whether the error location
 in the program and the target location in the witness are reached. The target location
-of the witness is modeled as an error state to make the algorithm easy compatible with Multianalyses.
+of the witness is modeled as an error state to make the algorithm easy compatible with \texttt{multianalyses}.
 
 The C program is parsed and transformed into the program XCFA. The witness is parsed as YAML and 
-then transformed into the witness XCFA. The violation witness can include waypoints of type avoid. 
-In XCFA, a single trap node is created that all avoid waypoints point to. This works because the 
-trap node (not connected to any other node) traps the execution of the violation witness, which 
-means the error state of this witness cannot be reached.
+then transformed into the witness XCFA.
 
 While transforming the C program from AST to XCFA, much of the AST node data is added as metadata 
 to the XCFA locations and edges. This metadata is used to ensure that the waypoints of the witness 
@@ -68,8 +66,8 @@ point to the correct places in the program XCFA. The pointing and correlation be
 done using a global variable waypoint, which is assigned in the program XCFA and assumed in the 
 witness XCFA.
 
-From each XCFA, a Multianalysis side is created. Then the sides are combined to form the Multianalysis. 
-Because of how the waypoint variable is handled, the Multianalysis is straightforward: each side 
+From each XCFA, a Multianalysis side is created. Then the sides are combined to form the \texttt{multianalysis}. 
+Because of how the waypoint variable is handled, the \texttt{multianalysis} is straightforward: each side 
 is moved in sequence, starting from the program XCFA, until error states are reached in both XCFAs.
 
 If both error states are reached, the witness is considered valid; otherwise, it is considered invalid.
@@ -91,7 +89,7 @@ variable role is simply to determine which particular edge needs to be checked.
 We consider two types of assumption waypoints:
 \begin{itemize}
   \item An \textbf{avoid assumption} specifies a condition that the program must 
-    \textit{not} satisfy. In other words, this assumption must not be met.
+    \textit{not} satisfy ~\cite{witness2}. In other words, this assumption must not be met.
     An avoid assumption can be thought of as a negated follow assumption that 
     does not cause an advancement to the next segment.
     This implies that each time the program logic encounters an avoid assumption, 
@@ -103,7 +101,7 @@ We consider two types of assumption waypoints:
   \item A \textbf{follow assumption} dictates that the program \textit{must} 
     traverse a specific waypoint within the current segment.
     After successfully passing through this waypoint, the program is required to transition 
-    to the next segment. This means the waypoint associated with a \textbf{follow} assumption 
+    to the next segment ~\cite{witness2}. This means the waypoint associated with a \textbf{follow} assumption 
     must be visited only once.
     Therefore, this type of assumption is represented by an edge leading from the current 
     state (after satisfying the waypoint condition) to the node representing the subsequent segment.
@@ -154,9 +152,9 @@ We consider two types of assumption waypoints:
         (SN) edge node[midway, right, font=\scriptsize] {$C_3 \land \text{wp} = wp_3$} (SN2);
 
     \end{tikzpicture}
-  \caption{XCFA mapping of the assumtion type waypoints and their constrains. The \texttt{C}
+  \caption{XCFA mapping of the assumption type waypoints and their constrains. The \texttt{C}
   variables are c expressions and the \texttt{wp} variables are just a tuple of row:col.}
-  \label{fig:combined}
+  \label{fig:map assumtion}
 \end{figure}
 
 One of the edges depicted in the figure, which has not been previously explained, is the loop at 
@@ -172,8 +170,8 @@ A while loop provides a good example for understanding the difference between
 \emph{avoid} and \emph{follow} assumptions.
 To clarify the usual confusion surrounding these concepts, and to explain why they 
 are necessary and defined in this manner, consider the following illustration.
-Suppose, looking at the simple \texttt{while} loop in Figure~3.3, the objective is 
-to ensure tha the variable $v$ always remains greater than 200; effectively, this means 
+Suppose, looking at the simple \texttt{while loop} in Figure~\ref{fig:avoid vs follow}, the objective is 
+to ensure that the variable $v$ always remains greater than 200; effectively, this means 
 we aim for the $s$ variable to overflow.
 One could achieve this by employing a \emph{follow} assumption, such as $v > 200$, 
 applied across n distinct program segments.
@@ -227,8 +225,8 @@ while (i < n) {
 
   \end{tikzpicture}
 
-  \caption{A Simple Whileloop and its corresponding branching in the XCFA of the program.}
-  \label{fig:combined}
+  \caption{A simple \texttt{while loop} and its corresponding branching in the XCFA of the program.}
+  \label{fig:avoid vs follow}
 \end{figure}
 
 Branching waypoints can be located at control flow statements such as \texttt{if}, \texttt{while}, a 
@@ -236,7 +234,7 @@ Branching waypoints can be located at control flow statements such as \texttt{if
 It is important to first note that in an XCFA, these C constructs are all represented as branching structures.
 The XCFA representation for \texttt{if}, \texttt{while} statements and the \texttt{ternary operator (?:)} is generally 
 similar, whereas it tends to be more complex for \texttt{switch} statements.
-As an illustration, Figure~3.3 depicts the XCFA of a \texttt{while} loop, where the XCFA branches into two directions. 
+As an illustration, Figure~\ref{fig:avoid vs follow} depicts the XCFA of a \texttt{while} loop, where the XCFA branches into two directions. 
 A \texttt{switch} statement, in contrast, typically involves a greater number of branches.
 This branching mechanism enables the differentiation of the path taken within the XCFA program 
 solely by using the \texttt{wp} variable.
@@ -251,8 +249,8 @@ the \texttt{wp} variable.
 In the current version of Theta's validator, we only support \texttt{if} and \texttt{while} types of branching waypoints:
 \begin{itemize}
   \item An \textbf{avoid branching} waypoint dictates that the program execution should never 
-    traverse the branch specified by this waypoint. In other words, the \texttt{wp} variable 
-    should never be equal to (i.e., point to) the location associated with this type of waypoint.
+    traverse the branch specified by this waypoint ~\cite{witness2}. In other words, the \texttt{wp} variable 
+    should never be equal to (i.e., point to) the location (in the program XCFA) associated with this type of waypoint.
     To represent this in the witness XCFA, no specific action is taken; essentially, no edge is defined 
     for this type of waypoint. This is because encountering this type of waypoint signifies that the
     program execution should halt (i.e., "get stuck").
@@ -262,7 +260,7 @@ In the current version of Theta's validator, we only support \texttt{if} and \te
     However, for the type of waypoint being discussed here, encountering it mandates an immediate stop of the execution.
     This is achieved in the witness XCFA by not adding an edge, effectively meaning there is no subsequent state to transition to.
   \item A \textbf{follow branching} waypoint indicates that the program execution \emph{must} 
-    follow this particular branch. We can easily verify if the program indeed followed this
+    follow this particular branch ~\cite{witness2}. We can easily verify if the program indeed followed this
     branch by checking if the \texttt{wp} variable is equal to the location of this waypoint. 
     In the witness XCFA, this can be represented by an edge leading to the subsequent segment, which is
     traversed if the \texttt{wp} variable matches this waypoint's location.
@@ -328,7 +326,7 @@ be omitted, with only the location being kept. This, however, is not the case in
 There is only one type of target waypoint:
 \begin{itemize}
   \item A \textbf{follow target} waypoint indicates that the program execution should reach 
-    the designated error location. It is positioned immediately before the error, 
+    the designated error location ~\cite{witness2}. It is positioned immediately before the error, 
     ensuring that no other program evaluations occur before the error state is encountered. 
     In the witness XCFA, this can be readily represented by an edge pointing directly to the error location.
 \end{itemize}
@@ -401,13 +399,14 @@ The following is an example segment that includes all the aforementioned types o
         node distance=2cm,
         >={Stealth[scale=1.2]},
         every edge/.style={draw, ->},
+        errornode/.style={solidnode, fill=red!20},
         solidnode/.style={draw, circle, minimum size=1.2cm}, % Solid nodes
         dashednode/.style={draw, dashed, circle, minimum size=1.2cm} % Dashed nodes
     ]
 
     \node[dashednode] (SN1) {$s_{n-1}$};
     \node[solidnode, below=1cm of SN1] (SN) {$s_n$};
-    \node[dashednode, below=1cm of SN] (SN2) {$s_{n+1}$};
+    \node[errornode, below=1cm of SN] (SN2) {error};
 
     \path (SN1) edge[dashed] (SN)
         (SN) edge[out=150, in=210, min distance=1.2cm] node[left, font=\scriptsize] {$\neg C_2 \land \text{wp} = wp_2$} (SN)
@@ -424,10 +423,11 @@ The following is an example segment that includes all the aforementioned types o
 
 
 \section{Combining and Executing the XCFA's}
-As seen in Figure~3.1, after the program and witness XCFAs are created and their 
-corresponding waypoints (locations) are matched, we proceed to run the Multianalysis. 
+\label{sec:xcfa_product}
+As seen in Figure~\ref{fig:Validation in Theta}, after the program and witness XCFAs are created and their 
+corresponding waypoints (locations) are matched, we proceed to run the \texttt{multianalysis}. 
 Before explaining how the XCFAs are executed together, we should first examine what 
-a generic witness may look like. Figure~3.7 (left) shows such a witness.
+a generic witness may look like. Figure~\ref{fig:algo} (left) shows such a witness.
 
 A witness XCFA can be composed of a start location, a sequence of one or more segments, and 
 an error location. Segments are represented by nodes labeled $S_i$.
@@ -546,10 +546,10 @@ an arbitrary edge within the program XCFA that does have an associated waypoint.
 \caption{Comparison of a generic witness XCFA (left) and a generic program 
 XCFA (right). Dashed nodes or edges are optional. Dotted lines represent an 
 abstracted list of segments. Each XCFA has a start and an error location.}
-  \label{fig:combined}
+  \label{fig:algo}
 \end{figure}
 
-Now, let's discuss how the multi-analysis is run. We begin from the \texttt{start} node in both XCFAs. 
+Now, let's discuss how the \texttt{multianalysis} is run. We begin from the \texttt{start} node in both XCFAs. 
 The program XCFA's execution proceeds until a waypoint is encountered. Suppose the current waypoint 
 reached is $\texttt{wp}_{s_ni}$.
 The \texttt{wp} variable is set to this current waypoint, $\texttt{wp}_{s_ni}$, and the \texttt{run}
@@ -761,7 +761,6 @@ int main() {
 \caption{The unsafe C program on the left and its corresponding XCFA on the right.}
   \label{fig:combined}
 \end{figure}
-
 
 
 \begin{figure}[htbp]
@@ -1055,7 +1054,7 @@ $\text{err}_\text{w}$ for witness), which means our violation witness is a valid
 
 \section{Limitations}
 
-As mentioned in Section 2.1, violation witnesses also include \texttt{function\_enter} and
+As mentioned in Section~\ref{sec:witnesses}, violation witnesses also include \texttt{function\_enter} and
 \texttt{function\_return} waypoints. Although their implementation is expected to be
 straightforward, these two waypoint types are not currently supported.
 Additionally, \texttt{switch} statements are not yet supported, though work is in progress

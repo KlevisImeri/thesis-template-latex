@@ -1,7 +1,33 @@
-\chapter{Related Works}
-\section{Theta's Validation Capabilities Compared to Other Verification Tools}
+\chapter{Related Work}
+
+There are numerous verification and validation tools available, with \texttt{CPAchecker} and \texttt{UAutomizer}
+being among the most prominent, including \texttt{Theta}. Both are classified as static validators, meaning
+they analyze the program without actual execution, unlike dynamic validators ~\cite{witness1}. We will now compare
+our solution to these two established validators.
+
+It is well known that \texttt{CPAchecker} employs its Configurable Program Analysis (CPA) framework for
+both verification of programs and the validation of witnesses. For violation witness validation, \texttt{CPAchecker}
+executes a composite CPA. This typically includes a LocationCPA, two AutomatonCPA instances (one
+for the observer automaton representing the specification, and another for the witness automaton),
+and potentially further CPAs like an IntervalCPA to provide specific analysis capabilities ~\cite{witness1}.
+The program is initially parsed into a Control-Flow Automaton (CFA). Subsequently, the CPA
+algorithm is run on this CFA, guided by the witness and specification automata, and the
+validation results are then outputted.
+
+Compared to our \texttt{Theta} validator, the \texttt{CPAchecker} validator possesses a broader range of features
+and handles both violation and correctness witnesses. Furthermore, \texttt{CPAchecker} supports witness
+refinement, a capability our current validator does not offer.
+
+On the other hand, \texttt{UAutomizer}, when validating violation witnesses, utilizes a technique quite
+similar to the one implemented in our \texttt{Theta} validator. It effectively creates a product of the
+program's automaton (CFA) and the witness automaton ~\cite{witness1}.
+When compared to our validator, \texttt{UAutomizer} is a more complete tool, providing more features,
+including the significant capability of supporting correctness witnesses.
 
 
-Related works chapeter Witness Validation on other Tool + heta’s Validation Capabilities 
-Compared to Other Verification Tools = related work
+
+% \section{Theta's Validation Capabilities Compared to Other Verification Tools}
+%
+% Related works chapeter Witness Validation on other Tool + heta’s Validation Capabilities 
+% Compared to Other Verification Tools = related work
 

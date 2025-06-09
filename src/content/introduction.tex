@@ -2,4 +2,31 @@
 \chapter{Introduction}
 %----------------------------------------------------------------------------
 
-Today is a Happy day
+Software has become indispensable in modern life, permeating everything from smartphones to 
+satellites. Software inevitably contains bugs that require fixing. Software verification is 
+the process of identifying these bugs in computer programs or demonstrating their absence. ~\cite{witness2} 
+Various software verification methods exist, ranging from human-driven approaches like code 
+reviews and software testing (including unit and integration testing) to automated techniques 
+such as static and dynamic analysis. Formal methods, including model checking, offer mathematical 
+approaches to software verification.
+
+Numerous verification tools have been created by different organizations and research teams. 
+Some prominent examples are \texttt{CPAchecker}, \texttt{UAutomizer}, \texttt{Theta}.
+Despite being developed independently, these tools can still share their results with other tools
+through witnesses.
+
+These witnesses encapsulate verification information, enabling tools to validate results quicker,
+either by themselves or by other verification tools. The witness format undergoes
+continuous updates, with each iteration aiming to improve upon its predecessor. However, as
+these witness formats evolve, tools must also integrate these new versions into their frameworks.
+\texttt{Theta}, despite being a quite feature-rich verification framework, previously lacked a
+validator for the Witness 2.0 version. This paper endeavors to lay the groundwork by outlining
+the algorithms and implementation strategy for creating a validator for this witness type
+within \texttt{Theta}. The proposed approach for implementing violation witness validation for
+this new format involves converting the witness into an XCFA and subsequently
+creating a product automaton with the program XCFA. This enables \texttt{Theta}'s
+supported \texttt{multianalysis} to be run on this product automaton. Although the implemented
+validator currently lacks several features, initial results have demonstrated promising outcomes.
+The impact of this work lies in establishing the foundation for a feature-rich,
+state-of-the-art validator.
+
